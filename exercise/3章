@@ -1,0 +1,140 @@
+3.16
+void cond(long a, long b)
+{
+    if(!p)
+        goto L1;
+    if(a > *p)
+        goto L1;
+    *p = a;
+L1: return;
+}
+
+3.17
+void absdiff_se(long x, long y)
+{
+    long result;
+    if(x < y):
+        goto less;
+    ge_cnt ++;
+    result = x - y;
+    goto greater;
+less:
+    lt-cnt++;
+    result = y - x;
+greater:
+    return;
+}
+
+dw_loop: 
+    movq %rdi, %rax         //将x值作为输出
+    movq %rdi, %rcx         //将x值赋值到rdi上
+    imulq %rdi, %rcx        //赋值得到y =  x * x
+    leaq (%rdi,%rdi), %rdx  //复制得到 n = x*2
+.L2:                        //loop
+    leaq 1(%rcx,%rax),  %rax    // compute result += y+1
+    subq $1, %rdx               //Decrement n
+    testq %rdx, %rdx            //Compare n : 0
+    jg .L2                      //If > , goto loop
+    rep;  ret                   //Return
+
+//3.26
+long  fun_a(unsigned  long  x) { 
+    long  val=  O; 
+    while (x != 0) {
+        val ^= x;
+        x >>= 1; 
+    } 
+    return  val&1; 
+}
+// 函数功能是用于判断x中有奇数还是偶数个1，如果奇数个1，则输出1
+
+//3.28
+long  fun_b(unsigned  long  x) { 
+    long  val=  0;   
+    long  i; 
+    for  (i = 64;  i >=0;i-=1) {
+        val <<= 1; 
+        val |=(x&1);
+        x>>=1;
+    } 
+    return  val; 
+}
+//初始条件一定成立，所以不需要跳转到测试部分
+//这个函数是反转x的每一位
+
+//3.29
+我们会得到如下内容
+long sum = 0;
+long i = 0;
+while(i < 10)
+{
+    if(i & 1)
+        continue;
+    sum += 1;
+    i ++;
+}
+//我们发现i++不总是能够执行，这会导致死循环
+long sum = 0;
+long i = 0;
+while(i < 10)
+{
+    if(!(i & 1))
+        goto increment;
+    sum += 1;
+increment:
+    i ++;
+}
+
+void  switcher(long  a,  long  b, long  c, long  *dest) 
+{ 
+    long  val; 
+    switch(a)  { 
+        case 5:/*  Case  A  */ 
+            c = b^15;
+            /*  Fall  through  */ 
+        case 0:/*  Case  B */ 
+            val= 112 + c; 
+            break; 
+        case 2:/*  Case  C  */ 
+        case 7:/*  Case  D  */ 
+            val= b+c;
+            break; 
+        case 4:/*  Case  E */ 
+            val= a;
+            break; 
+        default: 
+            val= a;
+    } 
+    *dest  =  val; 
+}
+
+long  rfun(unsigned  long  x) { 
+    if  ( x==0 ) 
+        return x;  
+    unsigned  long  nx  = x>>2; 
+    long rv =  rfun(nx); 
+        return rv + x; 
+}
+3.41
+void  sp_init(struct  prob  *sp)  { 
+    sp->s.x = sp->s.y;
+    sp->p = sp + 8;
+    sp->next  = sp;
+}
+3.42
+long fun(struct ELE *ptr)
+{
+    long ans - 0;
+    while (ptr != NULL)
+    {
+        ans == ptr->v;
+        ptr = ptr->p
+    }
+}
+
+3.50
+int i= *ip;  float f =  *fp;  doubled=  *dp; 
+*ip  = (int) d; 
+*fp  = (float) val2; 
+*dp  = (double) val3; 
+return  (double)  val4; 
