@@ -1,0 +1,103 @@
+ Your exploit string must not contain byte value 0x0a at any intermediate position, since this is the
+ASCII code for newline (‘\n’). When Gets encounters this byte, it will assume you intended to
+terminate the string.
+
+这是 CS:APP 的 **Attack Lab (Buffer Overflow / 缓冲区溢出)** 实验。
+
+与 Bomb Lab（读懂代码）不同，这个实验的目标是**利用代码漏洞**。你需要构造特殊的输入字符串，利用缓冲区溢出修改程序的运行轨迹（例如让它跳转到它本不该执行的函数，或者执行你注入的机器码）。
+
+以下是实验步骤总结及开展方法：
+
+### 1. 实验文件概览
+*   **`ctarget`** (Code Injection): 用于前 3 关 (Phase 1-3)。没有栈保护，允许执行栈上的代码。
+*   **`rtarget`** (Return-Oriented Programming): 用于后 2 关 (Phase 4-5)。开启了栈不可执行保护 (NX) 和随机化，难度较高。
+*   **`cookie.txt`**: 包含一个 8 位的十六进制数字（你的“签名”），实验中经常需要你把这个值传给函数或注入到内存中。
+*   **`hex2raw`**: **关键工具**。用于将你写的十六进制文本（如 `48 c7 c1...`）转换成真正的二进制字节流，传给目标程序。
+
+---
+
+### 2. 核心工作流程 (如何开展)
+
+这个实验的通用流程是：**反汇编 -> 计算偏移量 -> 构造攻击字符串 -> 转换并攻击**。
+
+#### 第一步：反汇编与分析
+你需要知道目标函数的地址以及缓冲区的位置。
+```bash
+# 反汇编 ctarget
+objdump -d ctarget > ctarget.asm
+```
+打开 `ctarget.asm`，重点关注以下函数：
+*   `getbuf`: 这是漏洞发生的地方。你需要看它分配了多少栈空间（例如 `sub $0x28, %rsp`），从而计算出需要填充多少垃圾数据才能覆盖到返回地址。
+*   `touch1`, `touch2`, `touch3`: 这些是你攻击的目标函数。你需要找到它们的入口地址。
+
+#### 第二步：构造攻击代码 (Exploit)
+你需要创建一个文本文件（例如 `exploit.txt`），在里面写十六进制代码。
+攻击字符串的结构通常是：
+```text
+[ 填充数据 (Padding) ] + [ 覆盖的返回地址 (Return Address) ] + [ 可选: 注入的代码 ]
+```
+*   **Padding**: 填满缓冲区，直到触碰到栈上的“返回地址”存放位置。
+*   **Return Address**: 将其修改为你想要跳转的地址（例如 `touch1` 的地址）。
+
+**例子 (exploit.txt 内容):**
+```text
+00 00 00 00 00 00 00 00  /* 填充垃圾数据 */
+...
+ef be ad de 00 00 00 00  /* 覆盖返回地址 (注意小端序!) */
+```
+
+#### 第三步：转换并运行 (使用 hex2raw)
+你不能直接在键盘上输入非打印字符（如地址 `0x401234`），所以必须使用 `hex2raw`。
+
+**命令格式：**
+```bash
+./hex2raw < Attack.txt | ./ctarget -q
+```
+*   `hex2raw` 把你的文本转成二进制。
+*   `|` (管道) 把二进制数据喂给 `ctarget`。
+*   `-q` 参数让 `ctarget` 不打印中间的提示信息，只打印结果。
+
+---
+
+### 3. 关卡简述
+
+#### Phase 1 (CI - Code Injection)
+*   **目标**：让 `getbuf` 函数返回时，不返回到原来的调用者，而是跳转到 `touch1` 函数。
+*   **做法**：填充缓冲区 -> 覆盖返回地址为 `touch1` 的地址。
+
+#### Phase 2 (CI)
+*   **目标**：跳转到 `touch2`，但 `touch2` 需要一个参数（你的 cookie）。
+*   **做法**：
+    1.  编写一段汇编指令（将 cookie 放入 `%rdi` 寄存器，然后 `ret`）。
+    2.  将这段汇编编译成机器码（使用 `gcc -c` 和 `objdump`）。
+    3.  将机器码放在栈上。
+    4.  修改返回地址，让程序跳转到栈上的这段机器码执行。
+
+#### Phase 3 (CI)
+*   **目标**：跳转到 `touch3`，参数是 cookie 的**字符串形式**的地址。
+*   **做法**：类似 Phase 2，但需要把 cookie 的字符串也写在栈上，并把 `%rdi` 指向这个字符串的地址。
+
+#### Phase 4 & 5 (ROP - Return-Oriented Programming)
+*   **目标**：针对 `rtarget`。因为栈不可执行，你不能注入代码了。
+*   **做法**：利用程序自带的代码片段（Gadgets，通常以 `ret` 结尾的指令序列）。你需要构造一个复杂的栈结构，利用一连串的 `ret` 指令，像接力棒一样在不同的代码片段间跳跃，最终拼凑出攻击逻辑。
+
+### 4. 常用命令速查
+
+*   **生成汇编对应的机器码**：
+    如果你写了一个 `inject.s` 文件：
+    ```bash
+    gcc -c inject.s
+    objdump -d inject.o
+    ```
+*   **GDB 调试攻击**：
+    ```bash
+    gdb ctarget
+    (gdb) run -q < raw_exploit.bin  # 需要先用 hex2raw 生成 bin 文件
+    ```
+
+**建议从 Phase 1 开始：**
+1.  `objdump -d ctarget > ctarget.asm`
+2.  找 `getbuf` 开了多大的栈。
+3.  找 `touch1` 的地址。
+4.  写 `ans1.txt`，填满垃圾数据，最后加上 `touch1` 的地址（记得是小端序，反着写）。
+5.  `./hex2raw < ans1.txt | ./ctarget -q` 验证。
