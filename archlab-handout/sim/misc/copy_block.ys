@@ -1,0 +1,44 @@
+    .pos 0
+    irmovq stack, %rsp      # 设置栈指针 (非常重要!)
+    call main               # 调用主函数
+    halt                    # 停机
+
+.align 8
+# Source block
+src:
+    .quad 0x00a
+    .quad 0x0b0
+    .quad 0xc00
+# Destination block
+dest:
+    .quad 0x111
+    .quad 0x222
+    .quad 0x333
+main:
+    irmovq src, %rdi       # 传递参数: 链表头指针放在 %rdi
+    irmovq dest, %rsi
+    irmovq $3, %rdx
+    
+    call copy_block           # 调用你的函数
+    ret
+
+copy_block:
+    xorq %rax, %rax
+    irmovq $8, %r8
+    irmovq $1, %r9
+    jmp test
+loop:
+    mrmovq (%rdi), %rcx
+    addq %r8, %rdi
+    rmmovq %rcx, (%rsi)
+    addq %r8, %rsi
+    xorq %rcx, %rax
+    subq %r9, %rdx
+test:
+    andq %rdx, %rdx
+    jg loop
+    ret
+
+# Stack starts here and grows to lower addresses
+    .pos 0x200
+stack:

@@ -1,0 +1,250 @@
+                            | #######################################################################
+                            | # Test for copying block of size 4;
+                            | #######################################################################
+0x000:                      | 	.pos 0
+0x000: 30f41005000000000000 | main:	irmovq Stack, %rsp  	# Set up stack pointer
+                            | 
+                            | 	# Set up arguments for copy function and then invoke it
+0x00a: 30f20400000000000000 | 	irmovq $4, %rdx		# src and dst have 4 elements
+0x014: 30f66804000000000000 | 	irmovq dest, %rsi	# dst array
+0x01e: 30f73804000000000000 | 	irmovq src, %rdi	# src array
+0x028: 803200000000000000   | 	call ncopy		 
+0x031: 00                   | 	halt			# should halt with num nonzeros in %rax
+0x032:                      | StartFun:
+                            | #/* $begin ncopy-ys */
+                            | ##################################################################
+                            | # ncopy.ys - Copy a src block of len words to dst.
+                            | # Return the number of positive words (>0) contained in src.
+                            | #
+                            | # Include your name and ID here.
+                            | #
+                            | # Describe how and why you modified the baseline code.
+                            | # Modified by GitHub Copilot
+                            | # 1. Used iaddq to replace constant addition/subtraction.
+                            | # 2. Implemented 10-way loop unrolling to reduce loop overhead.
+                            | # 3. Interleaved memory access to avoid load-use hazards.
+                            | # 4. Used a jump table/tree structure to handle remaining elements.
+                            | #
+                            | ##################################################################
+                            | # Do not modify this portion
+                            | # Function prologue.
+                            | # %rdi = src, %rsi = dst, %rdx = len
+0x032:                      | ncopy:
+                            | 
+                            | ##################################################################
+                            | # You can modify this portion
+                            |     # Loop header
+0x032: 6300                 |     xorq %rax,%rax		# count = 0;
+0x034: c0f2f6ffffffffffffff |     iaddq $-10, %rdx    # len -= 10
+0x03e: 720802000000000000   |     jl Root             # if len < 10, handle remainder
+                            | 
+0x047:                      | Loop:
+0x047: 50870000000000000000 |     mrmovq (%rdi), %r8      # read val 1
+0x051: 50970800000000000000 |     mrmovq 8(%rdi), %r9     # read val 2
+0x05b: 50a71000000000000000 |     mrmovq 16(%rdi), %r10   # read val 3
+0x065: 50b71800000000000000 |     mrmovq 24(%rdi), %r11   # read val 4
+0x06f: 50c72000000000000000 |     mrmovq 32(%rdi), %r12   # read val 5
+0x079: 50d72800000000000000 |     mrmovq 40(%rdi), %r13   # read val 6
+0x083: 50e73000000000000000 |     mrmovq 48(%rdi), %r14   # read val 7
+0x08d: 50373800000000000000 |     mrmovq 56(%rdi), %rbx   # read val 8
+0x097: 50174000000000000000 |     mrmovq 64(%rdi), %rcx   # read val 9
+0x0a1: 50574800000000000000 |     mrmovq 72(%rdi), %rbp   # read val 10
+                            | 
+0x0ab: 40860000000000000000 |     rmmovq %r8, (%rsi)      # store val 1
+0x0b5: 40960800000000000000 |     rmmovq %r9, 8(%rsi)     # store val 2
+0x0bf: 40a61000000000000000 |     rmmovq %r10, 16(%rsi)   # store val 3
+0x0c9: 40b61800000000000000 |     rmmovq %r11, 24(%rsi)   # store val 4
+0x0d3: 40c62000000000000000 |     rmmovq %r12, 32(%rsi)   # store val 5
+0x0dd: 40d62800000000000000 |     rmmovq %r13, 40(%rsi)   # store val 6
+0x0e7: 40e63000000000000000 |     rmmovq %r14, 48(%rsi)   # store val 7
+0x0f1: 40363800000000000000 |     rmmovq %rbx, 56(%rsi)   # store val 8
+0x0fb: 40164000000000000000 |     rmmovq %rcx, 64(%rsi)   # store val 9
+0x105: 40564800000000000000 |     rmmovq %rbp, 72(%rsi)   # store val 10
+                            | 
+0x10f: 6288                 |     andq %r8, %r8           # val 1 <= 0?
+0x111: 712401000000000000   |     jle Check2
+0x11a: c0f00100000000000000 |     iaddq $1, %rax          # count++
+0x124:                      | Check2:
+0x124: 6299                 |     andq %r9, %r9           # val 2 <= 0?
+0x126: 713901000000000000   |     jle Check3
+0x12f: c0f00100000000000000 |     iaddq $1, %rax
+0x139:                      | Check3:
+0x139: 62aa                 |     andq %r10, %r10         # val 3 <= 0?
+0x13b: 714e01000000000000   |     jle Check4
+0x144: c0f00100000000000000 |     iaddq $1, %rax
+0x14e:                      | Check4:
+0x14e: 62bb                 |     andq %r11, %r11         # val 4 <= 0?
+0x150: 716301000000000000   |     jle Check5
+0x159: c0f00100000000000000 |     iaddq $1, %rax
+0x163:                      | Check5:
+0x163: 62cc                 |     andq %r12, %r12         # val 5 <= 0?
+0x165: 717801000000000000   |     jle Check6
+0x16e: c0f00100000000000000 |     iaddq $1, %rax
+0x178:                      | Check6:
+0x178: 62dd                 |     andq %r13, %r13         # val 6 <= 0?
+0x17a: 718d01000000000000   |     jle Check7
+0x183: c0f00100000000000000 |     iaddq $1, %rax
+0x18d:                      | Check7:
+0x18d: 62ee                 |     andq %r14, %r14         # val 7 <= 0?
+0x18f: 71a201000000000000   |     jle Check8
+0x198: c0f00100000000000000 |     iaddq $1, %rax
+0x1a2:                      | Check8:
+0x1a2: 6233                 |     andq %rbx, %rbx         # val 8 <= 0?
+0x1a4: 71b701000000000000   |     jle Check9
+0x1ad: c0f00100000000000000 |     iaddq $1, %rax
+0x1b7:                      | Check9:
+0x1b7: 6211                 |     andq %rcx, %rcx         # val 9 <= 0?
+0x1b9: 71cc01000000000000   |     jle Check10
+0x1c2: c0f00100000000000000 |     iaddq $1, %rax
+0x1cc:                      | Check10:
+0x1cc: 6255                 |     andq %rbp, %rbp         # val 10 <= 0?
+0x1ce: 71e101000000000000   |     jle EndLoop
+0x1d7: c0f00100000000000000 |     iaddq $1, %rax
+                            | 
+0x1e1:                      | EndLoop:
+0x1e1: c0f75000000000000000 |     iaddq $80, %rdi         # src += 10
+0x1eb: c0f65000000000000000 |     iaddq $80, %rsi         # dst += 10
+0x1f5: c0f2f6ffffffffffffff |     iaddq $-10, %rdx        # len -= 10 (loop check)
+0x1ff: 754700000000000000   |     jge Loop
+                            | 
+0x208:                      | Root:   # Handle remainder: len is now between -10 and -1
+0x208: c0f20700000000000000 |     iaddq $7, %rdx      # restore logic index: range now -3 to 6
+0x212: 722d02000000000000   |     jl Left             # if < 0 (orig len 0,1,2), go Left
+0x21b: 765202000000000000   |     jg Right            # if > 0 (orig len 4..9), go Right
+0x224: 73b803000000000000   |     je Rem3             # if = 0 (orig len 3), do 3
+                            | 
+0x22d:                      | Left: # Handles 0, 1, 2
+0x22d: c0f20200000000000000 |     iaddq $2, %rdx      # range now -1 to 1
+0x237: 730a04000000000000   |     je Rem1             # if = 0 (orig len 1), do 1
+0x240: 723304000000000000   |     jl Done             # if < 0 (orig len 0), done!
+0x249: 70e103000000000000   |     jmp Rem2            # if > 0 (orig len 2), do 2
+                            | 
+0x252:                      | Right: # Handles 4..9
+0x252: c0f2fdffffffffffffff |     iaddq $-3, %rdx     # range now -2 to 3 (orig 4,5,6 -> <0; 7 -> =0; 8,9 -> >0)
+0x25c: 727702000000000000   |     jl RightLeft        # Handles 4, 5, 6
+0x265: 76a602000000000000   |     jg RightRight       # Handles 8, 9
+0x26e: 701403000000000000   |     jmp Rem7            # Handles 7
+                            | 
+0x277:                      | RightLeft: # Handles 4, 5, 6. Current val in rdx: -2, -1, 0
+0x277: c0f20200000000000000 |     iaddq $2, %rdx      # range now 0 to 2
+0x281: 738f03000000000000   |     je Rem4
+0x28a: c0f2ffffffffffffffff |     iaddq $-1, %rdx
+0x294: 736603000000000000   |     je Rem5
+0x29d: 703d03000000000000   |     jmp Rem6
+                            | 
+0x2a6:                      | RightRight: # Handles 8, 9. Current val in rdx: 1, 2
+0x2a6: c0f2ffffffffffffffff |     iaddq $-1, %rdx
+0x2b0: 73eb02000000000000   |     je Rem8
+0x2b9: 70c202000000000000   |     jmp Rem9
+                            | 
+                            | # ------------------------------------------------------------------
+                            | # Jump Table Logic
+                            | # ------------------------------------------------------------------
+                            | 
+0x2c2:                      | Rem9:
+0x2c2: 50a74000000000000000 |     mrmovq 64(%rdi), %r10
+0x2cc: 40a64000000000000000 |     rmmovq %r10, 64(%rsi)
+0x2d6: 62aa                 |     andq %r10, %r10
+0x2d8: 71eb02000000000000   |     jle Rem8
+0x2e1: c0f00100000000000000 |     iaddq $1, %rax
+0x2eb:                      | Rem8:
+0x2eb: 50a73800000000000000 |     mrmovq 56(%rdi), %r10
+0x2f5: 40a63800000000000000 |     rmmovq %r10, 56(%rsi)
+0x2ff: 62aa                 |     andq %r10, %r10
+0x301: 711403000000000000   |     jle Rem7
+0x30a: c0f00100000000000000 |     iaddq $1, %rax
+0x314:                      | Rem7:
+0x314: 50a73000000000000000 |     mrmovq 48(%rdi), %r10
+0x31e: 40a63000000000000000 |     rmmovq %r10, 48(%rsi)
+0x328: 62aa                 |     andq %r10, %r10
+0x32a: 713d03000000000000   |     jle Rem6
+0x333: c0f00100000000000000 |     iaddq $1, %rax
+0x33d:                      | Rem6:
+0x33d: 50a72800000000000000 |     mrmovq 40(%rdi), %r10
+0x347: 40a62800000000000000 |     rmmovq %r10, 40(%rsi)
+0x351: 62aa                 |     andq %r10, %r10
+0x353: 716603000000000000   |     jle Rem5
+0x35c: c0f00100000000000000 |     iaddq $1, %rax
+0x366:                      | Rem5:
+0x366: 50a72000000000000000 |     mrmovq 32(%rdi), %r10
+0x370: 40a62000000000000000 |     rmmovq %r10, 32(%rsi)
+0x37a: 62aa                 |     andq %r10, %r10
+0x37c: 718f03000000000000   |     jle Rem4
+0x385: c0f00100000000000000 |     iaddq $1, %rax
+0x38f:                      | Rem4:
+0x38f: 50a71800000000000000 |     mrmovq 24(%rdi), %r10
+0x399: 40a61800000000000000 |     rmmovq %r10, 24(%rsi)
+0x3a3: 62aa                 |     andq %r10, %r10
+0x3a5: 71b803000000000000   |     jle Rem3
+0x3ae: c0f00100000000000000 |     iaddq $1, %rax
+0x3b8:                      | Rem3:
+0x3b8: 50a71000000000000000 |     mrmovq 16(%rdi), %r10
+0x3c2: 40a61000000000000000 |     rmmovq %r10, 16(%rsi)
+0x3cc: 62aa                 |     andq %r10, %r10
+0x3ce: 71e103000000000000   |     jle Rem2
+0x3d7: c0f00100000000000000 |     iaddq $1, %rax
+0x3e1:                      | Rem2:
+0x3e1: 50a70800000000000000 |     mrmovq 8(%rdi), %r10
+0x3eb: 40a60800000000000000 |     rmmovq %r10, 8(%rsi)
+0x3f5: 62aa                 |     andq %r10, %r10
+0x3f7: 710a04000000000000   |     jle Rem1
+0x400: c0f00100000000000000 |     iaddq $1, %rax
+0x40a:                      | Rem1:
+0x40a: 50a70000000000000000 |     mrmovq (%rdi), %r10
+0x414: 40a60000000000000000 |     rmmovq %r10, (%rsi)
+0x41e: 62aa                 |     andq %r10, %r10
+0x420: 713304000000000000   |     jle Done
+0x429: c0f00100000000000000 |     iaddq $1, %rax
+                            | 
+                            | ##################################################################
+                            | # Do not modify the following section of code
+                            | # Function epilogue.
+0x433:                      | Done:
+0x433: 90                   |     ret
+                            | ##################################################################
+                            | # Keep the following label at the end of your function
+0x434:                      | End:
+                            | #/* $end ncopy-ys */EndFun:
+                            | 
+                            | ###############################
+                            | # Source and destination blocks 
+                            | ###############################
+0x438:                      | 	.align 8
+0x438:                      | src:
+0x438: ffffffffffffffff     | 	.quad -1
+0x440: feffffffffffffff     | 	.quad -2
+0x448: 0300000000000000     | 	.quad 3
+0x450: 0400000000000000     | 	.quad 4
+0x458: fadebc0000000000     | 	.quad 0xbcdefa # This shouldn't get moved
+                            | 
+0x460:                      | 	.align 16
+0x460:                      | Predest:
+0x460: fadebc0000000000     | 	.quad 0xbcdefa
+0x468:                      | dest:
+0x468: abefcd0000000000     | 	.quad 0xcdefab
+0x470: abefcd0000000000     | 	.quad 0xcdefab
+0x478: abefcd0000000000     | 	.quad 0xcdefab
+0x480: abefcd0000000000     | 	.quad 0xcdefab
+0x488:                      | Postdest:
+0x488: bcfade0000000000     | 	.quad 0xdefabc
+                            | 
+0x490:                      | .align 8
+                            | # Run time stack
+0x490: 0000000000000000     | 	.quad 0
+0x498: 0000000000000000     | 	.quad 0
+0x4a0: 0000000000000000     | 	.quad 0
+0x4a8: 0000000000000000     | 	.quad 0
+0x4b0: 0000000000000000     | 	.quad 0
+0x4b8: 0000000000000000     | 	.quad 0
+0x4c0: 0000000000000000     | 	.quad 0
+0x4c8: 0000000000000000     | 	.quad 0
+0x4d0: 0000000000000000     | 	.quad 0
+0x4d8: 0000000000000000     | 	.quad 0
+0x4e0: 0000000000000000     | 	.quad 0
+0x4e8: 0000000000000000     | 	.quad 0
+0x4f0: 0000000000000000     | 	.quad 0
+0x4f8: 0000000000000000     | 	.quad 0
+0x500: 0000000000000000     | 	.quad 0
+0x508: 0000000000000000     | 	.quad 0
+                            | 
+0x510:                      | Stack:
