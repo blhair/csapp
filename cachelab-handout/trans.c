@@ -22,6 +22,52 @@ int is_transpose(int M, int N, int A[N][M], int B[M][N]);
 char transpose_submit_desc[] = "Transpose submission";
 void transpose_submit(int M, int N, int A[N][M], int B[M][N])
 {
+    int i, j, tmp;
+    if (M == 32 && N == 32) {
+        // 32x32 矩阵的优化
+        for (i = 0; i < N; i += 8) {
+            for (j = 0; j < M; j += 8) {
+                for (int k = i; k < i + 8; k++) {
+                    for (int l = j; l < j + 8; l++) {
+                        if (k != l) {
+                            B[l][k] = A[k][l];
+                        } else {
+                            tmp = A[k][l];
+                        }
+                    }
+                    if (i == j) {
+                        B[k][k] = tmp;
+                    }
+                }
+            }
+        }
+    } else if (M == 64 && N == 64) {
+        // 64x64 矩阵的优化
+        for (i = 0; i < N; i += 4) {
+            for (j = 0; j < M; j += 4) {
+                for (int k = i; k < i + 4; k++) {
+                    for (int l = j; l < j + 4; l++) {
+                        if (k != l) {
+                            B[l][k] = A[k][l];
+                        } else {
+                            tmp = A[k][l];
+                        }
+                    }
+                    if (i == j) {
+                        B[k][k] = tmp;
+                    }
+                }
+            }
+        }
+    } else {
+        // 通用情况
+        for (i = 0; i < N; i++) {
+            for (j = 0; j < M; j++) {
+                B[j][i] = A[i][j];
+            }
+        }
+    }
+  
 }
 
 /* 
